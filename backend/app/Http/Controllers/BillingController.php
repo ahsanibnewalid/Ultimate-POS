@@ -89,6 +89,9 @@ class BillingController
     private function createStripeCheckout(string $transactionId, $tenant, array $plan, string $currency)
     {
         $secret = (string) config('billing.stripe.secret');
+        if (str_starts_with($secret, 'sk_live_') !== (bool) config('billing.stripe.live_mode')) {
+            throw new \\RuntimeException('Stripe key mode does not match STRIPE_LIVE_MODE.');
+        }
 
         $frontend = config('billing.frontend_url');
         $response = Http::asForm()->withToken($secret)->acceptJson()->connectTimeout(5)->timeout(20)->post(
@@ -238,7 +241,9 @@ class BillingController
 
     private function activateStripeCheckout(array $session): void
     {
-        if (($session['mode'] ?? null) !== 'subscription' || !in_array($session['payment_status'] ?? null, ['paid', 'no_payment_required'], true)) {
+        if (($session['mode'] ?? null) !== 'subscription'
+            || (($session['livemode'] ?? null) !== (bool) config('billing.stripe.live_mode'))
+            || !in_array($session['payment_status'] ?? null, ['paid', 'no_payment_required'], true)) {
             return;
         }
         $transactionId = $session['metadata']['transaction_id'] ?? $session['client_reference_id'] ?? null;
@@ -389,6 +394,6 @@ class BillingController
     {
         abort_unless($request->user()->role === 'admin', 403, 'Only the workspace administrator can view billing.');
         return response()->json(['data' => DB::table('billing_transactions')
-            ->where('tenant_id', $request->user()->tenant_id)->orderByDesc('id')->limit(100)->get()]);
+            ->where('tenant_id', $request->user()->tenant_id)->orderByDesc('id')->limit(100)->get(['transaction_id', 'provider', 'plan', 'amount', 'currency', 'status', 'paid_at', 'created_at'])]);
     }
 }
