@@ -41,6 +41,8 @@ class BillingController
             'provider' => ['required', 'in:stripe,sslcommerz'],
             'plan' => ['required', 'string', 'in:' . implode(',', array_keys(config('billing.plans')))],
             'phone' => ['required_if:provider,sslcommerz', 'nullable', 'string', 'regex:/^\\+?[0-9 ()-]{7,25}$/'],
+            'address' => ['required_if:provider,sslcommerz', 'nullable', 'string', 'max:200'],
+            'city' => ['required_if:provider,sslcommerz', 'nullable', 'string', 'max:60'],
         ]);
         if ($data['provider'] === 'stripe' && !config('billing.stripe.secret')) {
             return response()->json(['message' => 'Stripe is not configured. Add the server-side Stripe secret key first.'], 503);
@@ -75,7 +77,7 @@ class BillingController
         try {
             return $provider === 'stripe'
                 ? $this->createStripeCheckout($transactionId, $tenant, $plan, $currency)
-                : $this->createSslCommerzCheckout($transactionId, $tenant, $plan, $amount, (string) ($data['phone'] ?? ''));
+                : $this->createSslCommerzCheckout($transactionId, $tenant, $plan, $amount, (string) ($data['phone'] ?? ''), (string) ($data['address'] ?? ''), (string) ($data['city'] ?? ''));
         } catch (Throwable $exception) {
             report($exception);
             DB::table('billing_transactions')->where('transaction_id', $transactionId)->where('status', 'pending')
@@ -134,7 +136,7 @@ class BillingController
         throw new \LogicException('Unknown billing plan.');
     }
 
-    private function createSslCommerzCheckout(string $transactionId, $tenant, array $plan, string $amount, string $phone)
+    private function createSslCommerzCheckout(string $transactionId, $tenant, array $plan, string $amount, string $phone, string $address, string $city)
     {
         $storeId = (string) config('billing.sslcommerz.store_id');
         $password = (string) config('billing.sslcommerz.store_password');
@@ -157,8 +159,8 @@ class BillingController
             'ipn_url' => $appUrl . '/api/billing/sslcommerz/ipn',
             'cus_name' => $tenant->name,
             'cus_email' => $tenant->users()->where('role', 'admin')->value('email') ?: 'billing@example.invalid',
-            'cus_add1' => 'Not provided',
-            'cus_city' => 'Dhaka',
+            'cus_add1' => $address,
+            'cus_city' => $city,
             'cus_country' => 'Bangladesh',
             'cus_phone' => preg_replace('/\\D+/', '', $phone),
             'shipping_method' => 'NO',
@@ -306,10 +308,7 @@ class BillingController
     public function sslCommerzReturn(Request $request)
     {
         // Browser redirects are never proof of payment. Only the validated IPN may activate a plan.
-        return response()->json([
-            'message' => 'Payment result received. Your workspace is updated only after server-side payment validation.',
-            'transaction_id' => $request->input('tran_id'),
-        ], 202);
+        return redirect()->away(rtrim((string) config('billing.frontend_url'), '/') . '/?billing=processing');
     }
 
     public function sslCommerzIpn(Request $request)
