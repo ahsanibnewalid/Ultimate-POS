@@ -86,13 +86,11 @@ class BillingController
             if ($provider === 'stripe' && $lockedTenant->stripe_subscription_id) {
                 return ['error' => 409, 'message' => 'This workspace already has an active Stripe subscription. Cancel or manage that subscription before starting another one.'];
             }
-            if ($provider === 'stripe') {
-                $pending = DB::table('billing_transactions')
-                    ->where('tenant_id', $tenant->id)->where('provider', 'stripe')->where('status', 'pending')
-                    ->where('created_at', '>=', now()->subHours(25))->orderByDesc('id')->first();
-                if ($pending) {
-                    return ['pending' => $pending];
-                }
+            $pending = DB::table('billing_transactions')
+                ->where('tenant_id', $tenant->id)->where('provider', $provider)->where('status', 'pending')
+                ->where('created_at', '>=', now()->subHours(25))->orderByDesc('id')->first();
+            if ($pending) {
+                return ['pending' => $pending];
             }
             DB::table('billing_transactions')->insert($transactionRow);
             return ['created' => true];
@@ -106,9 +104,9 @@ class BillingController
             $metadata = json_decode((string) $pending->provider_metadata, true);
             if ($pending->plan === $data['plan'] && is_array($metadata) && is_string($metadata['checkout_url'] ?? null)
                 && is_string($pending->provider_reference) && $pending->provider_reference !== '') {
-                return response()->json(['provider' => 'stripe', 'transaction_id' => $pending->transaction_id, 'checkout_url' => $metadata['checkout_url'], 'reused' => true]);
+                return response()->json(['provider' => $provider, 'transaction_id' => $pending->transaction_id, 'checkout_url' => $metadata['checkout_url'], 'reused' => true]);
             }
-            return response()->json(['message' => 'A Stripe checkout is already pending for this workspace. Complete or wait for it to expire before starting another.'], 409);
+            return response()->json(['message' => 'A payment checkout is already pending for this workspace. Reuse it or wait for it to expire before starting another.'], 409);
         }
 
         try {
@@ -220,7 +218,7 @@ class BillingController
 
         DB::table('billing_transactions')->where('transaction_id', $transactionId)->update([
             'provider_reference' => $sessionKey,
-            'provider_metadata' => json_encode(['gateway' => 'hosted'], JSON_THROW_ON_ERROR),
+            'provider_metadata' => json_encode(['gateway' => 'hosted', 'checkout_url' => $checkoutUrl], JSON_THROW_ON_ERROR),
             'updated_at' => now(),
         ]);
 
