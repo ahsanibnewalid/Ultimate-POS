@@ -22,12 +22,16 @@ jobs:
       - run: npm run build
       - run: test -f out/index.html
   backend:
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.2', '8.3']
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: ${{ matrix.php-version }}
           extensions: pdo_pgsql, pdo_mysql, mbstring, dom, curl, sqlite3, pdo_sqlite
           coverage: none
       - working-directory: backend
