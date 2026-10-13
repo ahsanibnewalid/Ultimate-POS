@@ -364,8 +364,8 @@ class BillingController
                 return;
             }
             $tenant = DB::table('tenants')->where('id', $locked->tenant_id)->lockForUpdate()->first();
-            $baseDate = $tenant && $tenant->subscription_ends_at && \\Illuminate\\Support\\Carbon::parse($tenant->subscription_ends_at)->isFuture()
-                ? \\Illuminate\\Support\\Carbon::parse($tenant->subscription_ends_at)
+            $baseDate = $tenant && $tenant->subscription_ends_at && \Illuminate\Support\Carbon::parse($tenant->subscription_ends_at)->isFuture()
+                ? \Illuminate\Support\Carbon::parse($tenant->subscription_ends_at)
                 : now();
             $endsAt = $baseDate->copy()->addMonth();
             DB::table('billing_transactions')->where('id', $locked->id)->update([
