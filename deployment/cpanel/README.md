@@ -3,7 +3,7 @@
 This is the recommended low-cost deployment layout for shared cPanel:
 
 - **Frontend:** Next.js static export uploaded to the main domain's document root.
-- **API:** Laravel 12 served by PHP 8.3+ from an API subdomain, such as `api.example.com`.
+- **API:** Laravel 12 served by PHP 8.2+ from an API subdomain, such as `api.example.com`.
 - **Database:** cPanel MySQL/MariaDB.
 - **No server-side Node.js, Docker, PostgreSQL or Redis required.**
 
@@ -13,7 +13,7 @@ This is the recommended low-cost deployment layout for shared cPanel:
 
 In cPanel, verify that the account provides:
 
-- PHP **8.3 or newer** for the API domain.
+- PHP **8.2 or newer** for the API domain.
 - PHP extensions: `ctype`, `curl`, `dom`, `fileinfo`, `filter`, `hash`, `mbstring`, `openssl`, `pdo`, `pdo_mysql`, `session`, `tokenizer`, and `xml`.
 - MySQL/MariaDB database creation and a database user.
 - HTTPS/SSL for both the main domain and API subdomain.
@@ -51,7 +51,7 @@ Do not use a database administrator/root account in the app.
 
    If you set `APP_KEY` manually from `php artisan key:generate --show`, paste the generated value into `.env` and do not run `key:generate` again.
 5. Make `storage/` and `bootstrap/cache/` writable by the account's PHP process. Do not set world-writable permissions.
-6. In cPanel's PHP selector, ensure the API domain uses PHP 8.3+ and the required extensions.
+6. In cPanel's PHP selector, ensure the API domain uses PHP 8.2+ and the required extensions.
 7. Open `https://api.example.com/api/health`. It should return JSON. This health check does not prove database migrations or all application features are working.
 
 ### MySQL compatibility gate
@@ -67,7 +67,9 @@ The app was originally configured for PostgreSQL. The deployment config now incl
 
 The cPanel server does not need Node.js because Next.js is configured to export a static site.
 
-On your development computer, from the repository's `frontend/` folder:
+You can build the frontend on your computer, or download the generated `Ultimate-POS-cPanel.zip` artifact from the successful **cpanel-package** job in GitHub Actions. The artifact includes the static frontend and Composer production dependencies, so cPanel does not need Node.js or Composer. The API URL can be changed in `public_html/config.js` after extraction.
+
+To build the frontend yourself, from the repository's `frontend/` folder:
 
 **Windows PowerShell**
 ```powershell
@@ -82,11 +84,13 @@ npm ci
 NEXT_PUBLIC_API_URL=https://api.example.com/api npm run build
 ```
 
-The build should create `frontend/out/`. If it fails, fix the build errors before uploading. The API URL is embedded at build time, so rebuild after changing it.
+The build should create `frontend/out/`. If it fails, fix the build errors before uploading. For the cPanel artifact, set the API URL in `public_html/config.js` after upload; no frontend rebuild is required for a URL change.
 
 Upload the **contents** of `frontend/out/` to the main domain's document root (usually `public_html/`), not the `frontend/` source folder. The `.htaccess` included in `frontend/public/` is copied into the export by Next.js and enables Apache's static fallback/security headers.
 
 ## 5. Configure URLs and CORS
+
+Edit `public_html/config.js` and set `apiUrl` to your HTTPS API endpoint, for example `https://api.example.com/api`. This runtime setting lets you deploy the same static frontend build to different domains.
 
 - Main dashboard: `https://example.com`
 - API: `https://api.example.com`
