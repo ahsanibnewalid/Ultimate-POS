@@ -40,7 +40,14 @@ class BillingController
         $data = $request->validate([
             'provider' => ['required', 'in:stripe,sslcommerz'],
             'plan' => ['required', 'string', 'in:' . implode(',', array_keys(config('billing.plans')))],
+            'phone' => ['required_if:provider,sslcommerz', 'nullable', 'string', 'regex:/^\\+?[0-9 ()-]{7,25}$/'],
         ]);
+        if ($data['provider'] === 'stripe' && !config('billing.stripe.secret')) {
+            return response()->json(['message' => 'Stripe is not configured. Add the server-side Stripe secret key first.'], 503);
+        }
+        if ($data['provider'] === 'sslcommerz' && (!config('billing.sslcommerz.store_id') || !config('billing.sslcommerz.store_password'))) {
+            return response()->json(['message' => 'SSLCommerz is not configured. Add merchant credentials first.'], 503);
+        }
         $tenant = $request->user()->tenant;
         $plan = config('billing.plans.' . $data['plan']);
         $provider = $data['provider'];
@@ -68,7 +75,7 @@ class BillingController
         try {
             return $provider === 'stripe'
                 ? $this->createStripeCheckout($transactionId, $tenant, $plan, $currency)
-                : $this->createSslCommerzCheckout($transactionId, $tenant, $plan, $amount);
+                : $this->createSslCommerzCheckout($transactionId, $tenant, $plan, $amount, (string) ($data['phone'] ?? ''));
         } catch (Throwable $exception) {
             report($exception);
             DB::table('billing_transactions')->where('transaction_id', $transactionId)->where('status', 'pending')
@@ -80,7 +87,6 @@ class BillingController
     private function createStripeCheckout(string $transactionId, $tenant, array $plan, string $currency)
     {
         $secret = (string) config('billing.stripe.secret');
-        abort_if($secret === '', 503, 'Stripe is not configured. Add the server-side Stripe secret key first.');
 
         $frontend = config('billing.frontend_url');
         $response = Http::asForm()->withToken($secret)->acceptJson()->connectTimeout(5)->timeout(20)->post(
@@ -128,11 +134,10 @@ class BillingController
         throw new \LogicException('Unknown billing plan.');
     }
 
-    private function createSslCommerzCheckout(string $transactionId, $tenant, array $plan, string $amount)
+    private function createSslCommerzCheckout(string $transactionId, $tenant, array $plan, string $amount, string $phone)
     {
         $storeId = (string) config('billing.sslcommerz.store_id');
         $password = (string) config('billing.sslcommerz.store_password');
-        abort_if($storeId === '' || $password === '', 503, 'SSLCommerz is not configured. Add merchant credentials first.');
 
         $baseUrl = config('billing.sslcommerz.sandbox')
             ? config('billing.sslcommerz.sandbox_url')
@@ -155,7 +160,7 @@ class BillingController
             'cus_add1' => 'Not provided',
             'cus_city' => 'Dhaka',
             'cus_country' => 'Bangladesh',
-            'cus_phone' => '01700000000',
+            'cus_phone' => preg_replace('/\\D+/', '', $phone),
             'shipping_method' => 'NO',
             'product_name' => 'Ultimate POS ' . $plan['name'] . ' plan',
             'product_category' => 'software',
