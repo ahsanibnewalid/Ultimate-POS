@@ -51,6 +51,9 @@ class BillingController
             return response()->json(['message' => 'SSLCommerz is not configured. Add merchant credentials first.'], 503);
         }
         $tenant = $request->user()->tenant;
+        if ($data['provider'] === 'stripe' && $tenant->stripe_subscription_id) {
+            return response()->json(['message' => 'This workspace already has an active Stripe subscription. Cancel or manage that subscription before starting another one.'], 409);
+        }
         $plan = config('billing.plans.' . $data['plan']);
         $provider = $data['provider'];
         $transactionId = (string) Str::uuid();
