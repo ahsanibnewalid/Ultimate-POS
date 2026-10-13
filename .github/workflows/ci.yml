@@ -41,8 +41,46 @@ jobs:
       - working-directory: backend
         run: vendor/bin/phpunit
 
+
+  mysql-tests:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: ultimate_pos
+          MYSQL_USER: pos
+          MYSQL_PASSWORD: pos-test-password
+          MYSQL_ROOT_PASSWORD: root-test-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -upos -ppos-test-password"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, dom, curl
+          coverage: none
+      - working-directory: backend
+        run: composer install --no-interaction --prefer-dist
+      - name: Run migration and feature tests on MySQL
+        working-directory: backend
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: ultimate_pos
+          DB_USERNAME: pos
+          DB_PASSWORD: pos-test-password
+        run: vendor/bin/phpunit
+
   cpanel-package:
-    needs: [frontend, backend]
+    needs: [frontend, backend, mysql-tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
