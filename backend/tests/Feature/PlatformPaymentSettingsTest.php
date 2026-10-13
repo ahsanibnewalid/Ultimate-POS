@@ -23,6 +23,7 @@ class PlatformPaymentSettingsTest extends TestCase
 
     public function test_platform_admin_can_save_encrypted_credentials_without_readback(): void
     {
+        config(['app.key' => 'base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=']);
         config(['platform.admin_emails' => ['operator@example.test']]);
         $account = $this->postJson('/api/register', [
             'business_name' => 'Platform Store', 'name' => 'Platform Operator',
