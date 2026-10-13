@@ -54,6 +54,28 @@ Do not use a database administrator/root account in the app.
 6. In cPanel's PHP selector, ensure the API domain uses PHP 8.2+ and the required extensions.
 7. Open `https://api.example.com/api/health`. It should return JSON. This health check does not prove database migrations or all application features are working.
 
+
+### If cPanel has no SSH/Terminal or Composer
+
+The GitHub Actions ZIP includes the Composer `vendor/` directory. For a fresh database, you can also use phpMyAdmin instead of running Laravel migrations:
+
+1. Create a new empty database and dedicated database user in cPanel.
+2. In phpMyAdmin, select that empty database and import [`deployment/cpanel/mysql-schema.sql`](mysql-schema.sql) from the repository. **Never import it over an existing database**; it creates tables and marks the included migrations as applied.
+3. In the private Laravel directory, copy `deployment/cpanel/backend.env.example` to `.env`. Replace the example domains and all database credentials.
+4. Generate a unique Laravel key on your Windows PC in PowerShell (no online key generator):
+   ```powershell
+   $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+   $bytes = New-Object byte[] 32
+   $rng.GetBytes($bytes)
+   $rng.Dispose()
+   "base64:" + [Convert]::ToBase64String($bytes)
+   ```
+   Paste the generated value into `APP_KEY=` in the private `.env` file. Do not reuse the same key across installations or commit it to GitHub.
+5. Ensure `storage/` and `bootstrap/cache/` are writable by PHP using the least-permissive mode your host supports (often 755/775, never 777 unless your host specifically requires a documented safer ACL alternative).
+6. Open `https://api.example.com/api/health`, then register the first store through the frontend.
+
+The SQL import is a bootstrap workaround for hosts without command-line access, not a substitute for MySQL integration tests. If you cannot set a secure document root, create the API subdomain with a document root at the Laravel `public/` folder or ask your provider to help. Never expose the Laravel project root or its `.env` file publicly.
+
 ### MySQL compatibility gate
 
 The app was originally configured for PostgreSQL. The deployment config now includes a MySQL connection, but **that alone does not convert PostgreSQL-specific migrations or SQL**. Before running migrations on a real database:
