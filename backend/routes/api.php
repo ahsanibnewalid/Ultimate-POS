@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
@@ -8,11 +9,17 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SaleController;
 use Illuminate\Support\Facades\Route;
 Route::get('/health',fn()=>response()->json(['status'=>'ok','service'=>'ultimate-pos-api']));
+Route::post('/billing/stripe/webhook',[BillingController::class,'stripeWebhook'])->middleware('throttle:120,1');
+Route::match(['get','post'],'/billing/sslcommerz/return',[BillingController::class,'sslCommerzReturn'])->middleware('throttle:60,1');
+Route::post('/billing/sslcommerz/ipn',[BillingController::class,'sslCommerzIpn'])->middleware('throttle:120,1');
 Route::post('/register',[AuthController::class,'register'])->middleware('throttle:5,1');
 Route::post('/login',[AuthController::class,'login'])->middleware('throttle:5,1');
 Route::middleware(['auth:sanctum','tenant.context'])->group(function(){
  Route::post('/logout',[AuthController::class,'logout']);
  Route::get('/me',[AuthController::class,'me']);
+ Route::get('/billing/status',[BillingController::class,'status']);
+ Route::post('/billing/checkout',[BillingController::class,'checkout'])->middleware('throttle:10,1');
+ Route::get('/billing/transactions',[BillingController::class,'transactions']);
  Route::get('/dashboard',DashboardController::class);
  Route::get('/audit-logs',[AuditLogController::class,'index']);
  Route::get('/products',[ProductController::class,'index']);
