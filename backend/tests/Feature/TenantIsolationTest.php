@@ -14,7 +14,7 @@ class TenantIsolationTest extends TestCase {
  }
  public function test_stock_cannot_be_sold_below_zero(): void {
   $account=$this->postJson('/api/register',['business_name'=>'Stock Store','name'=>'Stock Owner','email'=>'stock@example.test','password'=>'Correct-Horse-Battery-3!','password_confirmation'=>'Correct-Horse-Battery-3!'])->assertCreated()->json();
-  $this->postJson('/api/products',['name'=>'Tea','sku'=>'TEA-1','price'=>10,'cost'=>4]) ,['Authorization'=>'Bearer '.$account['token']])->assertCreated();
+  $this->postJson('/api/products',['name'=>'Tea','sku'=>'TEA-1','price'=>10,'cost'=>4],['Authorization'=>'Bearer '.$account['token']])->assertCreated();
   $this->postJson('/api/sales',['client_sale_id'=>'2b73a2a1-2c88-4d9f-90f5-a2a3b8a8a001','location_name'=>'Main Store','items'=>[['product_id'=>1,'quantity'=>1]],'payments'=>[['method'=>'cash','amount'=>10]]],['Authorization'=>'Bearer '.$account['token']])->assertUnprocessable();
  }
 }
