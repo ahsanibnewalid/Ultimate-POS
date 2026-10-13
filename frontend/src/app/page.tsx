@@ -1,7 +1,7 @@
 "use client";
 import { FormEvent,useCallback,useEffect,useMemo,useState } from "react";
 import { Activity,BarChart3,Boxes,Check,CircleDollarSign,ClipboardList,CreditCard,LayoutDashboard,LogOut,Package,Plus,RefreshCw,Search,Settings,ShoppingCart,Users,X } from "lucide-react";
-const API=(process.env.NEXT_PUBLIC_API_URL||"http://127.0.0.1:8000/api").replace(/\/$/,"");
+const API=((typeof window!=="undefined"?window.POS_CONFIG?.apiUrl:"")||process.env.NEXT_PUBLIC_API_URL||"http://127.0.0.1:8000/api").replace(/\/$/,"");
 type User={id:number;name:string;email:string;role:string;tenant?:{name:string;currency?:string;timezone?:string}};
 type Product={id:number;name:string;sku:string;barcode?:string|null;price:string|number;cost:string|number;track_stock:boolean;active:boolean};
 type Customer={id:number;name:string;phone?:string|null;email?:string|null;notes?:string|null};
