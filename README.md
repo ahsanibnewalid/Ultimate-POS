@@ -41,3 +41,6 @@ Authenticated tenant ID must be derived from the signed-in user and membership, 
 ## Specification
 
 See [docs/SAAS_SPECIFICATION.md](docs/SAAS_SPECIFICATION.md).
+## Shared cPanel deployment
+
+For regular shared cPanel hosting without Node.js support, follow the [cPanel deployment guide](deployment/cpanel/README.md). The frontend is built as a static export and the Laravel API is hosted on a PHP subdomain. A MySQL connection is included, but PostgreSQL-to-MySQL migration compatibility must be verified on staging before production use.
