@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -13,9 +14,9 @@ class SaleController {
   return response()->json(['data'=>$query->limit(100)->get()]);
  }
  public function store(Request $request) {
-  $data=$request->validate(['client_sale_id'=>['required','uuid'],'location_name'=>['required','string','max:120'],'items'=>['required','array','min:1','max:100'],'items.*.product_id'=>['required','integer','distinct'],'items.*.quantity'=>['required','integer','min:1','max:100000'],'payments'=>['required','array','min:1','max:10'],'payments.*.method'=>['required','in:cash,card,mobile'],'payments.*.amount'=>['required','numeric','gt:0']]);
+  $data=$request->validate(['client_sale_id'=>['required','uuid'],'location_name'=>['required','string','max:120'],'items'=>['required','array','min:1','max:100'],'items.*.product_id'=>['required','integer','distinct'],'items.*.quantity'=>['required','integer','min:1','max:100000'],'payments'=>['required','array','min:1','max:10'],'payments.*.method'=>['required','in:cash,card,mobile'],'payments.*.amount'=>['required','numeric','decimal:0,2','gt:0','max:999999999999.99']]);
   $tenantId=(int)$request->user()->tenant_id;
-  $result=DB::transaction(function()use($data,$tenantId,$request){
+  try{$result=DB::transaction(function()use($data,$tenantId,$request){
    $existing=DB::table('sales')->where('tenant_id',$tenantId)->where('client_sale_id',$data['client_sale_id'])->first();
    if($existing)return ['id'=>$existing->id,'receipt_number'=>$existing->receipt_number,'total'=>$existing->total,'replayed'=>true];
    $products=Product::where('tenant_id',$tenantId)->whereIn('id',collect($data['items'])->pluck('product_id'))->lockForUpdate()->get()->keyBy('id');
@@ -38,7 +39,11 @@ class SaleController {
    }
    foreach($data['payments'] as $payment)DB::table('payments')->insert(['tenant_id'=>$tenantId,'sale_id'=>$saleId,'method'=>$payment['method'],'amount'=>number_format(((int)round(((float)$payment['amount'])*100))/100,2,'.',''),'created_at'=>now(),'updated_at'=>now()]);
    return ['id'=>$saleId,'receipt_number'=>$receipt,'total'=>$total,'replayed'=>false];
-  },3);
+  },3);}catch(QueryException $exception){
+   $existing=DB::table('sales')->where('tenant_id',$tenantId)->where('client_sale_id',$data['client_sale_id'])->first();
+   if(!$existing)throw $exception;
+   $result=['id'=>$existing->id,'receipt_number'=>$existing->receipt_number,'total'=>$existing->total,'replayed'=>true];
+  }
   return response()->json($result,$result['replayed']?200:201);
  }
 }
