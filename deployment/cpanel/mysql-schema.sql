@@ -1,6 +1,6 @@
 -- Ultimate POS schema for cPanel phpMyAdmin installs.
 -- Import into a NEW, empty MySQL/MariaDB database only.
--- Verified against the repository's three Laravel migrations by schema review; CI must pass MySQL tests before production use.
+-- Includes the repository's four Laravel migrations; CI validates MySQL migration and bootstrap behavior before production use.
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS=0;
 
@@ -156,6 +156,25 @@ CREATE TABLE customers (
   CONSTRAINT customers_tenant_fk FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE audit_logs (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  actor_id BIGINT UNSIGNED NULL,
+  action VARCHAR(80) NOT NULL,
+  entity_type VARCHAR(80) NOT NULL,
+  entity_id BIGINT UNSIGNED NULL,
+  details TEXT NULL,
+  ip_address VARCHAR(45) NULL,
+  user_agent VARCHAR(500) NULL,
+  created_at TIMESTAMP NULL,
+  updated_at TIMESTAMP NULL,
+  PRIMARY KEY (id),
+  KEY audit_logs_tenant_created_index (tenant_id, created_at),
+  KEY audit_logs_actor_index (actor_id),
+  CONSTRAINT audit_logs_tenant_fk FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+  CONSTRAINT audit_logs_actor_fk FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE migrations (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   migration VARCHAR(255) NOT NULL,
@@ -166,6 +185,7 @@ CREATE TABLE migrations (
 INSERT INTO migrations (migration, batch) VALUES
 ('2026_10_13_000001_create_pos_core_tables', 1),
 ('2026_10_13_000002_create_customers_table', 1),
-('2026_10_13_000003_add_reason_to_inventory_ledger', 1);
+('2026_10_13_000003_add_reason_to_inventory_ledger', 1),
+('2026_10_13_000004_create_audit_logs_table', 1);
 
 SET FOREIGN_KEY_CHECKS=1;
