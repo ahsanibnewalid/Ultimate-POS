@@ -9,6 +9,7 @@ return [
     'stripe' => [
         'secret' => env('STRIPE_SECRET_KEY'),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+        'live_mode' => (bool) env('STRIPE_LIVE_MODE', false),
         'base_url' => 'https://api.stripe.com/v1',
         'signature_tolerance_seconds' => 300,
     ],
