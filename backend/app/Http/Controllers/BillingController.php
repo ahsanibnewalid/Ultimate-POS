@@ -90,7 +90,7 @@ class BillingController
     {
         $secret = (string) config('billing.stripe.secret');
         if (str_starts_with($secret, 'sk_live_') !== (bool) config('billing.stripe.live_mode')) {
-            throw new \\RuntimeException('Stripe key mode does not match STRIPE_LIVE_MODE.');
+            throw new \RuntimeException('Stripe key mode does not match STRIPE_LIVE_MODE.');
         }
 
         $frontend = config('billing.frontend_url');
