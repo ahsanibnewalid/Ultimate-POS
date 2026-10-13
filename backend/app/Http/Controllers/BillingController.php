@@ -38,7 +38,7 @@ class BillingController
         $data = $request->validate([
             'provider' => ['required', 'in:stripe,sslcommerz'],
             'plan' => ['required', 'string', 'in:' . implode(',', array_keys(config('billing.plans')))],
-            'phone' => ['required_if:provider,sslcommerz', 'nullable', 'string', 'regex:/^\\\\+?[0-9 ()-]{7,25}$/'],
+            'phone' => ['required_if:provider,sslcommerz', 'nullable', 'string', 'regex:/^[+]?[0-9 ()-]{7,25}$/'],
             'address' => ['required_if:provider,sslcommerz', 'nullable', 'string', 'max:200'],
             'city' => ['required_if:provider,sslcommerz', 'nullable', 'string', 'max:60'],
         ]);
