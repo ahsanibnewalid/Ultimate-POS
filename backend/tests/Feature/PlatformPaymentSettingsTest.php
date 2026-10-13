@@ -31,7 +31,7 @@ class PlatformPaymentSettingsTest extends TestCase
         ])->assertCreated()->json();
         config(['platform.admin_user_ids' => [(int) $account['user']['id']]]);
         $payload = [
-            'stripe_secret' => 'sk_test_example_secret', 'stripe_webhook_secret' => 'whsec_example_secret',
+            'stripe_secret' => 'sk_test_examplesecret', 'stripe_webhook_secret' => 'whsec_examplesecret',
             'sslcommerz_store_id' => 'test-store', 'sslcommerz_store_password' => 'example-store-password',
             'stripe_live_mode' => false, 'stripe_currency' => 'usd', 'sslcommerz_sandbox' => true,
             'billing_frontend_url' => 'https://pos.example.test',
@@ -43,9 +43,9 @@ class PlatformPaymentSettingsTest extends TestCase
         $response = $this->putJson('/api/platform/payment-settings', $payload, ['Authorization' => 'Bearer '.$account['token']])
             ->assertOk()->assertJsonPath('stripe.configured', true)->assertJsonPath('stripe.webhook_configured', true)
             ->assertJsonPath('sslcommerz.configured', true);
-        $this->assertStringNotContainsString('sk_test_example_secret', $response->getContent());
+        $this->assertStringNotContainsString('sk_test_examplesecret', $response->getContent());
         $stored = DB::table('platform_settings')->where('key', 'stripe_secret')->value('value');
-        $this->assertNotSame('sk_test_example_secret', $stored);
-        $this->assertSame('sk_test_example_secret', Crypt::decryptString($stored));
+        $this->assertNotSame('sk_test_examplesecret', $stored);
+        $this->assertSame('sk_test_examplesecret', Crypt::decryptString($stored));
     }
 }
