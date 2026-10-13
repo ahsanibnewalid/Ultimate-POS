@@ -7,7 +7,7 @@ This is the recommended low-cost deployment layout for shared cPanel:
 - **Database:** cPanel MySQL/MariaDB.
 - **No server-side Node.js, Docker, PostgreSQL or Redis required.**
 
-> **Read before deploying:** the repository is a foundation, not a complete or production-audited POS SaaS. The current dashboard still contains placeholder interactions. This guide makes the delivery layout compatible with common shared-hosting capabilities; it does not implement missing POS modules or prove the PostgreSQL migrations/queries are fully MySQL-compatible. Test against a staging database before importing business data or accepting payments.
+> **Read before deploying:** this is an active product foundation, not yet a production-audited POS SaaS. The dashboard now connects to the API for authentication, products, stock adjustments, customers, checkout, sales history and basic metrics. Purchasing, returns, accounting, subscriptions, full audit trails, password recovery and security review remain outstanding. MySQL/MariaDB compatibility must be proven on staging before importing business data or accepting payments.
 
 ## 1. Check the hosting plan
 
@@ -67,20 +67,20 @@ The app was originally configured for PostgreSQL. The deployment config now incl
 
 The cPanel server does not need Node.js because Next.js is configured to export a static site.
 
-You can build the frontend on your computer, or download the generated `Ultimate-POS-cPanel.zip` artifact from the successful **cpanel-package** job in GitHub Actions. The artifact includes the static frontend and Composer production dependencies, so cPanel does not need Node.js or Composer. The API URL can be changed in `public_html/config.js` after extraction.
+You can build the frontend on your computer, or download the `Ultimate-POS-cPanel.zip` artifact from the successful **cpanel-package** job in GitHub Actions. The ZIP contains `cpanel-package/public_html/` (static frontend files) and `cpanel-package/ultimate-pos-backend/` (Laravel source plus Composer production dependencies). Upload the contents of the first folder into the main domain's document root, and upload the second folder outside all public document roots. The API URL can be changed in `public_html/config.js` after upload. The artifact removes the need for Node.js or Composer on the host, but Laravel still needs a secure app key and database migrations; if your plan has no SSH/Terminal, ask the provider how to run Laravel CLI commands securely.
 
 To build the frontend yourself, from the repository's `frontend/` folder:
 
 **Windows PowerShell**
 ```powershell
-npm ci
+npm install
 $env:NEXT_PUBLIC_API_URL = "https://api.example.com/api"
 npm run build
 ```
 
 **macOS/Linux**
 ```bash
-npm ci
+npm install
 NEXT_PUBLIC_API_URL=https://api.example.com/api npm run build
 ```
 
