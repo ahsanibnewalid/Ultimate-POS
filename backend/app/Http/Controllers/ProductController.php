@@ -1,8 +1,8 @@
 <?php
-namespace App\\Http\\Controllers;
-use App\\Models\\Product;
-use Illuminate\\Http\\Request;
-use Illuminate\\Validation\\Rule;
+namespace App\Http\Controllers;
+use App\Models\Product;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 class ProductController {
     public function index(Request $request) {
         return Product::where('tenant_id',$request->user()->tenant_id)->where('active',true)->orderBy('name')->paginate(50);

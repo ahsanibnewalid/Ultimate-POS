@@ -1,8 +1,7 @@
 <?php
-use Monolog\\Handler\\NullHandler;
-use Monolog\\Handler\\StreamHandler;
-use Monolog\\Handler\\SyslogUdpHandler;
-use Monolog\\Processor\\PsrLogMessageProcessor;
+use Monolog\Handler\NullHandler;
+use Monolog\Handler\StreamHandler;
+use Monolog\Processor\PsrLogMessageProcessor;
 return [
  'default'=>env('LOG_CHANNEL','stderr'),'deprecations'=>['channel'=>env('LOG_DEPRECATIONS_CHANNEL','null'),'trace'=>env('LOG_DEPRECATIONS_TRACE',false)],
  'channels'=>[

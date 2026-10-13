@@ -1,24 +1,18 @@
 <?php
-namespace App\\Http\\Controllers;
-use App\\Models\\Product;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Str;
-use Illuminate\\Validation\\ValidationException;
+namespace App\Http\Controllers;
+use App\Models\Product;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 class SaleController {
-    /**
-     * POST /api/sales. Payload: client_sale_id UUID, location_name, items[{product_id,quantity}],
-     * payments[{method:cash|card|mobile,amount}]. client_sale_id makes offline retries idempotent.
-     */
+    /** POST /api/sales; client_sale_id UUID enables idempotent offline retry. */
     public function store(Request $request) {
         $data = $request->validate([
-            'client_sale_id'=>['required','uuid'],
-            'location_name'=>['required','string','max:120'],
-            'items'=>['required','array','min:1','max:100'],
-            'items.*.product_id'=>['required','integer','distinct'],
+            'client_sale_id'=>['required','uuid'],'location_name'=>['required','string','max:120'],
+            'items'=>['required','array','min:1','max:100'],'items.*.product_id'=>['required','integer','distinct'],
             'items.*.quantity'=>['required','integer','min:1','max:100000'],
-            'payments'=>['required','array','min:1','max:10'],
-            'payments.*.method'=>['required','in:cash,card,mobile'],
+            'payments'=>['required','array','min:1','max:10'],'payments.*.method'=>['required','in:cash,card,mobile'],
             'payments.*.amount'=>['required','numeric','gt:0'],
         ]);
         $tenantId=(int)$request->user()->tenant_id;
@@ -31,8 +25,7 @@ class SaleController {
             foreach($data['items'] as $item) {
                 $product=$products->get($item['product_id']);
                 if(!$product->active) throw ValidationException::withMessages(['items'=>['Inactive products cannot be sold.']]);
-                $qty=(int)$item['quantity']; $price=(float)$product->price;
-                $line=round($price*$qty,2); $total+=$line;
+                $qty=(int)$item['quantity']; $price=(float)$product->price; $line=round($price*$qty,2); $total+=$line;
                 $lines[]=['product'=>$product,'quantity'=>$qty,'unit_price'=>$price,'line_total'=>$line];
             }
             $total=round($total,2); $paid=round(collect($data['payments'])->sum(fn($p)=>(float)$p['amount']),2);

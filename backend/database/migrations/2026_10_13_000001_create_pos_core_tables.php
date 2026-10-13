@@ -1,7 +1,7 @@
 <?php
-use Illuminate\\Database\\Migrations\\Migration;
-use Illuminate\\Database\\Schema\\Blueprint;
-use Illuminate\\Support\\Facades\\Schema;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
  public function up(): void {
   Schema::create('tenants',function(Blueprint $t){$t->id();$t->string('name',160);$t->string('slug',180)->unique();$t->char('currency',3)->default('BDT');$t->string('timezone',80)->default('Asia/Dhaka');$t->string('plan')->default('free');$t->timestamps();});

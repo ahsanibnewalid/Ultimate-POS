@@ -1,12 +1,12 @@
 <?php
-namespace App\\Http\\Controllers;
-use App\\Models\\Tenant;
-use App\\Models\\User;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Hash;
-use Illuminate\\Support\\Str;
-use Illuminate\\Validation\\ValidationException;
+namespace App\Http\Controllers;
+use App\Models\Tenant;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 class AuthController {
     public function register(Request $request) {
         $data = $request->validate([
