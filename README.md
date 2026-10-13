@@ -44,3 +44,11 @@ See [docs/SAAS_SPECIFICATION.md](docs/SAAS_SPECIFICATION.md).
 ## Shared cPanel deployment
 
 For regular shared cPanel hosting without Node.js support, follow the [cPanel deployment guide](deployment/cpanel/README.md). The frontend is built as a static export and the Laravel API is hosted on a PHP subdomain. A MySQL connection is included, but PostgreSQL-to-MySQL migration compatibility must be verified on staging before production use.
+
+## Shared cPanel deployment
+
+For regular shared cPanel hosting without Node.js support, follow the [cPanel deployment guide](deployment/cpanel/README.md). The frontend is a static export, while Laravel runs on a PHP subdomain and uses MySQL/MariaDB where verified.
+
+The current API now includes tenant-scoped dashboard metrics, product creation/update/archive, stock adjustments, customer records, sales history, and checkout with stock availability checks and idempotency. CI checks frontend static export and PHP syntax in addition to the existing test suite.
+
+**Production status:** still requires real MySQL/MariaDB migration testing, comprehensive automated tenant/security and concurrent-sale tests, email verification/password recovery, subscription billing, refunds/returns, purchasing/accounting, backups and restore rehearsal, payment reconciliation, monitoring, and independent security review. Do not accept real payment or business data until those gates pass.
