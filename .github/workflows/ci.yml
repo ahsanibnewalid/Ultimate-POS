@@ -32,4 +32,4 @@ jobs:
       - working-directory: backend
         run: composer install --no-interaction --prefer-dist
       - working-directory: backend
-        run: php artisan test
+        run: vendor/bin/phpunit
