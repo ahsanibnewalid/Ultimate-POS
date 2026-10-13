@@ -102,6 +102,9 @@ jobs:
           mkdir -p cpanel-package/public_html cpanel-package/ultimate-pos-backend
           cp -a frontend/out/. cpanel-package/public_html/
           cp -a backend/. cpanel-package/ultimate-pos-backend/
+          cp deployment/cpanel/mysql-schema.sql cpanel-package/mysql-schema.sql
+          cp deployment/cpanel/README.md cpanel-package/INSTALL-README.md
+          cp deployment/cpanel/backend.env.example cpanel-package/ultimate-pos-backend/.env.example
           cd cpanel-package/ultimate-pos-backend
           composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
           cd ../..
