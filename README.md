@@ -14,6 +14,7 @@ Ultimate POS is an actively developed, multi-tenant point-of-sale (POS), sales, 
 
 ## Contents
 
+- [Visual guide: what, why, and how](#visual-guide-what-why-and-how)
 - [What it is](#what-it-is)
 - [Why use it](#why-use-it)
 - [Current features and limitations](#current-features-and-limitations)
@@ -28,6 +29,30 @@ Ultimate POS is an actively developed, multi-tenant point-of-sale (POS), sales, 
 - [Troubleshooting](#troubleshooting)
 - [Production readiness](#production-readiness)
 - [Contributing](#contributing)
+
+## Visual guide: what, why, and how
+
+These illustrations make the product concept and hosting layout easier to understand at a glance. **They are conceptual reference graphics, not screenshots of a live or production-certified application.** Sample dashboard figures are illustrative only.
+
+### What is Ultimate POS?
+
+![Conceptual Ultimate POS dashboard preview showing sales, products, inventory, and business metrics](docs/images/pos-dashboard-preview.svg)
+
+A browser-based workspace intended to bring sales, product records, customers, and inventory information together.
+
+### Why use it?
+
+![Illustrated workflow connecting product catalog, checkout, inventory, and sales overview](docs/images/why-ultimate-pos.svg)
+
+The goal is to reduce scattered day-to-day workflows by keeping core store operations connected. Review the [current feature and limitation table](#current-features-and-limitations) before relying on any capability for live business use.
+
+### How does it fit together?
+
+![Shared cPanel deployment architecture showing browser, static frontend, Laravel API, and MySQL database](docs/images/how-it-fits-together.svg)
+
+For regular shared cPanel hosting, the intended shape is a static frontend on the main domain, a Laravel API on a separate subdomain, and a database behind the API. Follow the [full cPanel deployment guide](deployment/cpanel/README.md); do not use this illustration as a substitute for the actual setup steps.
+
+---
 
 ## What it is
 
