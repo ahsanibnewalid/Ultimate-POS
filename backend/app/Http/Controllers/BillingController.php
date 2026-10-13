@@ -17,12 +17,12 @@ class BillingController
             'plan' => $tenant->plan,
             'billing_status' => $tenant->billing_status ?? 'inactive',
             'subscription_ends_at' => $tenant->subscription_ends_at,
-            'available_plans' => collect(config('billing.plans'))->map(fn ($plan, $key) => [
+            'available_plans' => collect($this->plans())->map(fn ($plan, $key) => [
                 'key' => $key,
                 'name' => $plan['name'],
                 'sslcommerz_monthly_bdt' => $plan['sslcommerz_monthly_bdt'],
                 'stripe_monthly_minor' => $plan['stripe_monthly_minor'],
-                'stripe_currency' => config('billing.currency.stripe'),
+                'stripe_currency' => $this->setting('stripe_currency', config('billing.currency.stripe')),
             ])->values(),
             'transactions' => DB::table('billing_transactions')
                 ->where('tenant_id', $tenant->id)
@@ -37,20 +37,20 @@ class BillingController
 
         $data = $request->validate([
             'provider' => ['required', 'in:stripe,sslcommerz'],
-            'plan' => ['required', 'string', 'in:' . implode(',', array_keys(config('billing.plans')))],
+            'plan' => ['required', 'string', 'in:' . implode(',', array_keys($this->plans()))],
             'phone' => ['required_if:provider,sslcommerz', 'nullable', 'string', 'regex:/^[+]?[0-9 ()-]{7,25}$/'],
             'address' => ['required_if:provider,sslcommerz', 'nullable', 'string', 'max:200'],
             'city' => ['required_if:provider,sslcommerz', 'nullable', 'string', 'max:60'],
         ]);
 
-        if ($data['provider'] === 'stripe' && !config('billing.stripe.secret')) {
+        if ($data['provider'] === 'stripe' && !$this->setting('stripe_secret', config('billing.stripe.secret'))) {
             return response()->json(['message' => 'Stripe is not configured. Add the server-side Stripe secret key first.'], 503);
         }
-        if ($data['provider'] === 'sslcommerz' && (!config('billing.sslcommerz.store_id') || !config('billing.sslcommerz.store_password'))) {
+        if ($data['provider'] === 'sslcommerz' && (!$this->setting('sslcommerz_store_id', config('billing.sslcommerz.store_id')) || !$this->setting('sslcommerz_store_password', config('billing.sslcommerz.store_password')))) {
             return response()->json(['message' => 'SSLCommerz is not configured. Add merchant credentials first.'], 503);
         }
         $tenant = $request->user()->tenant;
-        $frontend = (string) config('billing.frontend_url');
+        $frontend = (string) $this->setting('billing_frontend_url', config('billing.frontend_url'));
         if (config('app.env') === 'production'
             && (!str_starts_with((string) config('app.url'), 'https://') || !str_starts_with($frontend, 'https://'))) {
             return response()->json(['message' => 'Production payment checkout requires HTTPS for both the API and frontend URLs.'], 503);
@@ -59,7 +59,7 @@ class BillingController
         $plan = config('billing.plans.' . $data['plan']);
         $provider = $data['provider'];
         $currency = $provider === 'stripe'
-            ? config('billing.currency.stripe')
+            ? $this->setting('stripe_currency', config('billing.currency.stripe'))
             : config('billing.currency.sslcommerz');
         $amount = $provider === 'stripe'
             ? number_format(((int) $plan['stripe_monthly_minor']) / 100, 2, '.', '')
@@ -123,12 +123,12 @@ class BillingController
 
     private function createStripeCheckout(string $transactionId, $tenant, array $plan, string $currency)
     {
-        $secret = (string) config('billing.stripe.secret');
-        if (str_starts_with($secret, 'sk_live_') !== (bool) config('billing.stripe.live_mode')) {
+        $secret = (string) $this->setting('stripe_secret', config('billing.stripe.secret'));
+        if (str_starts_with($secret, 'sk_live_') !== (bool) $this->boolSetting('stripe_live_mode', config('billing.stripe.live_mode'))) {
             throw new \RuntimeException('Stripe key mode does not match STRIPE_LIVE_MODE.');
         }
 
-        $frontend = config('billing.frontend_url');
+        $frontend = $this->setting('billing_frontend_url', config('billing.frontend_url'));
         $response = Http::asForm()->withToken($secret)->acceptJson()->connectTimeout(5)->timeout(20)->post(
             config('billing.stripe.base_url') . '/checkout/sessions',
             [
@@ -166,7 +166,7 @@ class BillingController
 
     private function planKey(array $plan): string
     {
-        foreach (config('billing.plans') as $key => $configured) {
+        foreach ($this->plans() as $key => $configured) {
             if ($configured['name'] === $plan['name']) {
                 return (string) $key;
             }
@@ -176,10 +176,10 @@ class BillingController
 
     private function createSslCommerzCheckout(string $transactionId, $tenant, array $plan, string $amount, string $phone, string $address, string $city)
     {
-        $storeId = (string) config('billing.sslcommerz.store_id');
-        $password = (string) config('billing.sslcommerz.store_password');
+        $storeId = (string) $this->setting('sslcommerz_store_id', config('billing.sslcommerz.store_id'));
+        $password = (string) $this->setting('sslcommerz_store_password', config('billing.sslcommerz.store_password'));
 
-        $baseUrl = config('billing.sslcommerz.sandbox')
+        $baseUrl = $this->boolSetting('sslcommerz_sandbox', config('billing.sslcommerz.sandbox'))
             ? config('billing.sslcommerz.sandbox_url')
             : config('billing.sslcommerz.live_url');
         $apiUrl = rtrim($baseUrl, '/') . '/gwprocess/v4/api.php';
@@ -227,7 +227,7 @@ class BillingController
 
     public function stripeWebhook(Request $request)
     {
-        $secret = (string) config('billing.stripe.webhook_secret');
+        $secret = (string) $this->setting('stripe_webhook_secret', config('billing.stripe.webhook_secret'));
         abort_if($secret === '', 503, 'Stripe webhook is not configured.');
         $rawBody = $request->getContent();
         $header = (string) $request->header('Stripe-Signature', '');
@@ -277,14 +277,14 @@ class BillingController
     private function activateStripeCheckout(array $session): void
     {
         if (($session['mode'] ?? null) !== 'subscription'
-            || (($session['livemode'] ?? null) !== (bool) config('billing.stripe.live_mode'))
+            || (($session['livemode'] ?? null) !== (bool) $this->boolSetting('stripe_live_mode', config('billing.stripe.live_mode')))
             || !in_array($session['payment_status'] ?? null, ['paid', 'no_payment_required'], true)) {
             return;
         }
         $transactionId = $session['metadata']['transaction_id'] ?? $session['client_reference_id'] ?? null;
         $tenantId = filter_var($session['metadata']['tenant_id'] ?? null, FILTER_VALIDATE_INT);
         $planKey = $session['metadata']['plan'] ?? null;
-        if (!is_string($transactionId) || !$tenantId || !is_string($planKey) || !isset(config('billing.plans')[$planKey])) {
+        if (!is_string($transactionId) || !$tenantId || !is_string($planKey) || !isset($this->plans()[$planKey])) {
             return;
         }
 
@@ -348,7 +348,7 @@ class BillingController
     public function sslCommerzReturn(Request $request)
     {
         // Browser redirects are never proof of payment. Only the validated IPN may activate a plan.
-        return redirect()->away(rtrim((string) config('billing.frontend_url'), '/') . '/?billing=processing');
+        return redirect()->away(rtrim((string) $this->setting('billing_frontend_url', config('billing.frontend_url')), '/') . '/?billing=processing');
     }
 
     public function sslCommerzIpn(Request $request)
@@ -368,10 +368,10 @@ class BillingController
             return response()->json(['received' => true, 'duplicate' => true]);
         }
 
-        $storeId = (string) config('billing.sslcommerz.store_id');
-        $password = (string) config('billing.sslcommerz.store_password');
+        $storeId = (string) $this->setting('sslcommerz_store_id', config('billing.sslcommerz.store_id'));
+        $password = (string) $this->setting('sslcommerz_store_password', config('billing.sslcommerz.store_password'));
         abort_if($storeId === '' || $password === '', 503, 'SSLCommerz is not configured.');
-        $baseUrl = config('billing.sslcommerz.sandbox')
+        $baseUrl = $this->boolSetting('sslcommerz_sandbox', config('billing.sslcommerz.sandbox'))
             ? config('billing.sslcommerz.sandbox_url')
             : config('billing.sslcommerz.live_url');
 
@@ -423,6 +423,22 @@ class BillingController
         }, 3);
 
         return response()->json(['received' => true]);
+    }
+
+
+    private function setting(string $key, mixed $fallback = null): mixed
+    {
+        return app(\App\Support\PlatformPaymentSettings::class)->get($key, $fallback);
+    }
+
+    private function boolSetting(string $key, mixed $fallback = false): bool
+    {
+        return filter_var($this->setting($key, $fallback), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    private function plans(): array
+    {
+        return app(\App\Support\PlatformPaymentSettings::class)->plans();
     }
 
     public function transactions(Request $request)
