@@ -1,6 +1,6 @@
 -- Ultimate POS schema for cPanel phpMyAdmin installs.
 -- Import into a NEW, empty MySQL/MariaDB database only.
--- Includes the repository's four Laravel migrations; CI validates MySQL migration and bootstrap behavior before production use.
+-- Includes the repository's five Laravel migrations; CI validates MySQL migration and bootstrap behavior before production use.
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS=0;
 
