@@ -9,8 +9,11 @@ class TenantIsolationTest extends TestCase {
   $second=$this->postJson('/api/register',['business_name'=>'Store Two','name'=>'Owner Two','email'=>'two@example.test','password'=>'Correct-Horse-Battery-2!','password_confirmation'=>'Correct-Horse-Battery-2!'])->assertCreated()->json();
   $this->assertNotSame($first['tenant']['id'],$second['tenant']['id']);
   $this->postJson('/api/products',['name'=>'Coffee','sku'=>'COF-1','price'=>3.50,'cost'=>1.20],['Authorization'=>'Bearer '.$first['token']])->assertCreated();
+  app('auth')->forgetGuards();
   $this->getJson('/api/me',['Authorization'=>'Bearer '.$second['token']])->assertOk()->assertJsonPath('user.email','two@example.test');
+  app('auth')->forgetGuards();
   $this->getJson('/api/products',['Authorization'=>'Bearer '.$second['token']])->assertOk()->assertJsonCount(0,'data');
+  app('auth')->forgetGuards();
   $this->patchJson('/api/products/1',['price'=>0.01],['Authorization'=>'Bearer '.$second['token']])->assertNotFound();
  }
  public function test_stock_cannot_be_sold_below_zero(): void {
