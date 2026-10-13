@@ -5,7 +5,8 @@ const API=((typeof window!=="undefined"?window.POS_CONFIG?.apiUrl:"")||process.e
 type User={id:number;name:string;email:string;role:string;tenant?:{name:string;currency?:string;timezone?:string}};
 type Product={id:number;name:string;sku:string;barcode?:string|null;price:string|number;cost:string|number;track_stock:boolean;active:boolean};
 type Customer={id:number;name:string;phone?:string|null;email?:string|null;notes?:string|null};
-type Sale={id:number;receipt_number:string;total:string|number;location_name:string;created_at:string};\ntype AuditLog={id:number;action:string;entity_type:string;entity_id:number|null;details:string|null;ip_address:string|null;created_at:string;actor_name:string|null};
+type Sale={id:number;receipt_number:string;total:string|number;location_name:string;created_at:string};
+type AuditLog={id:number;action:string;entity_type:string;entity_id:number|null;details:string|null;ip_address:string|null;created_at:string;actor_name:string|null};
 type Dash={today:{sales_total:number;sales_count:number};products_count:number;customers_count:number;low_stock_count:number;low_stock:Array<{id:number;name:string;sku:string;on_hand:number}>;daily_sales:Array<{day:string;total:string;count:number}>;recent_sales:Sale[];tenant?:User["tenant"]};
 type Section="Overview"|"Point of sale"|"Products"|"Inventory"|"Customers"|"Sales"|"Reports"|"Activity log"|"Settings";
 const nav:Array<{label:Section;icon:typeof LayoutDashboard}>=[{label:"Overview",icon:LayoutDashboard},{label:"Point of sale",icon:ShoppingCart},{label:"Products",icon:Package},{label:"Inventory",icon:Boxes},{label:"Customers",icon:Users},{label:"Sales",icon:ClipboardList},{label:"Reports",icon:BarChart3},{label:"Activity log",icon:Activity},{label:"Settings",icon:Settings}];
@@ -33,7 +34,8 @@ export default function Home(){
    if(s==="Products"||s==="Point of sale")setProducts((await api<{data:Product[]}>("/products?per_page=100",t)).data);
    if(s==="Inventory"){setStock((await api<{data:Array<{product:Product;on_hand:number}>}>("/inventory",t)).data);setProducts((await api<{data:Product[]}>("/products?per_page=100",t)).data);}
    if(s==="Customers")setCustomers((await api<{data:Customer[]}>("/customers",t)).data);
-   if(s==="Sales"||s==="Reports")setSales((await api<{data:Sale[]}>("/sales",t)).data);\n   if(s==="Activity log")setAuditLogs((await api<{data:AuditLog[]}>("/audit-logs",t)).data);
+   if(s==="Sales"||s==="Reports")setSales((await api<{data:Sale[]}>("/sales",t)).data);
+   if(s==="Activity log")setAuditLogs((await api<{data:AuditLog[]}>("/audit-logs",t)).data);
   }catch(e){const m=e instanceof Error?e.message:"Could not connect to API";setError(m);setOnline(false);if(/unauthenticated|401|token/i.test(m)){localStorage.removeItem("ultimate-pos-token");setToken("");setUser(null);}}
  },[]);
  useEffect(()=>{const saved=localStorage.getItem("ultimate-pos-token");if(saved)setToken(saved);},[]);
