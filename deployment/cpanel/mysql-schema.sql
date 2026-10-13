@@ -203,6 +203,43 @@ CREATE TABLE billing_transactions (
   CONSTRAINT billing_transactions_tenant_fk FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE platform_settings (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `key` VARCHAR(120) NOT NULL,
+  `value` TEXT NOT NULL,
+  updated_by BIGINT UNSIGNED NULL,
+  created_at TIMESTAMP NULL,
+  updated_at TIMESTAMP NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY platform_settings_key_unique (`key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE platform_setting_audits (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  actor_id BIGINT UNSIGNED NULL,
+  setting_key VARCHAR(120) NOT NULL,
+  ip_address VARCHAR(45) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY platform_setting_audits_key_created_index (setting_key, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE tenant_pos_settings (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  printer_mode VARCHAR(24) NOT NULL DEFAULT 'browser',
+  paper_width_mm TINYINT UNSIGNED NOT NULL DEFAULT 80,
+  barcode_scanner_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  cash_drawer_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  terminal_mode VARCHAR(24) NOT NULL DEFAULT 'standalone',
+  receipt_footer VARCHAR(300) NOT NULL DEFAULT 'Thank you for your purchase!',
+  created_at TIMESTAMP NULL,
+  updated_at TIMESTAMP NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY tenant_pos_settings_tenant_unique (tenant_id),
+  CONSTRAINT tenant_pos_settings_tenant_fk FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE migrations (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   migration VARCHAR(255) NOT NULL,
@@ -215,6 +252,7 @@ INSERT INTO migrations (migration, batch) VALUES
 ('2026_10_13_000002_create_customers_table', 1),
 ('2026_10_13_000003_add_reason_to_inventory_ledger', 1),
 ('2026_10_13_000004_create_audit_logs_table', 1),
-('2026_10_13_000005_create_billing_transactions_table', 1);
+('2026_10_13_000005_create_billing_transactions_table', 1),
+('2026_10_13_000006_create_platform_settings_and_pos_hardware', 2);
 
 SET FOREIGN_KEY_CHECKS=1;

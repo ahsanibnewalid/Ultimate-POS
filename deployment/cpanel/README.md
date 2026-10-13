@@ -151,3 +151,12 @@ The API supports server-created Stripe Checkout subscriptions and SSLCommerz hos
 - [ ] Production `.env` is private, `APP_DEBUG=false`, and `APP_KEY` is unique.
 - [ ] Backups are stored off-server and a restore has been rehearsed.
 - [ ] No real customer/payment data until security and financial correctness have been reviewed.
+
+
+## Platform payment settings and POS hardware
+
+The platform operator must add the operator account email to `PLATFORM_ADMIN_EMAILS` in the private backend `.env` file, for example `PLATFORM_ADMIN_EMAILS=operator@yourdomain.com`. Use a dedicated, protected platform operator account; do not add all tenant administrators. If you are importing the complete `mysql-schema.sql` into a new empty database, it already includes the platform settings and hardware tables and migration record. If the database is already installed, deploy the new code and run `php artisan migrate --force` instead of re-importing the schema.
+
+After signing in with the allowlisted email, open Settings → Platform payment integrations. Enter sandbox credentials first and save. Credentials are encrypted using the Laravel application key and are write-only; blank secret fields keep the existing secret. Back up `APP_KEY` securely because losing it can make encrypted credentials unrecoverable. Keep the application key and all provider secrets out of Git and frontend files.
+
+The browser-based hardware profile supports keyboard-wedge barcode scanners and OS-installed receipt printers. The network-agent option is only a profile setting and does not install an agent. Automatic cash-drawer opening and integrated card-terminal APIs require compatible hardware plus a separately implemented/tested bridge or provider SDK. Do not accept live card payments until the terminal/acquirer flow is verified end-to-end.
