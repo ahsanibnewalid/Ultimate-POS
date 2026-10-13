@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 use App\Models\Product;
+use App\Support\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 class InventoryController {
@@ -20,6 +21,7 @@ class InventoryController {
    $onHand=(int)DB::table('inventory_ledger')->where('tenant_id',$tenantId)->where('product_id',$product->id)->where('location_name',$data['location_name'])->sum('quantity_delta');
    $newBalance=$onHand+(int)$data['quantity_delta']; abort_if($newBalance<0,422,'Stock adjustment cannot make inventory negative.');
    DB::table('inventory_ledger')->insert(['tenant_id'=>$tenantId,'product_id'=>$product->id,'location_name'=>$data['location_name'],'movement_type'=>'adjustment','quantity_delta'=>$data['quantity_delta'],'reference_type'=>'manual_adjustment','reference_id'=>0,'reason'=>$data['reason'],'created_by'=>$request->user()->id,'created_at'=>now(),'updated_at'=>now()]);
+   AuditLogger::record($request,'inventory.adjusted','product',(int)$product->id,['sku'=>$product->sku,'location'=>$data['location_name'],'quantity_delta'=>(int)$data['quantity_delta'],'reason'=>$data['reason'],'balance'=>$newBalance]);
    return ['product_id'=>$product->id,'on_hand'=>$newBalance,'reason'=>$data['reason']];
   },3);
   return response()->json($result,201);
