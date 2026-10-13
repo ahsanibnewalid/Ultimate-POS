@@ -1,12 +1,12 @@
 # Ultimate POS SaaS
 
-Laravel 12 / PHP 8.3 API foundation and Next.js operator dashboard for a multi-tenant POS and inventory SaaS.
+Laravel 12 / PHP 8.2+ API foundation and Next.js operator dashboard for a multi-tenant POS and inventory SaaS.
 
 > **Project status:** foundation / active development. This is not yet a fully audited production SaaS. Consult the [complete SaaS product and technical specification](docs/SAAS_SPECIFICATION.md) for the target modules, architecture, security controls, testing gates, milestones, and release checklist.
 
 ## Current scope
 
-The existing foundation provides registration/login, authenticated tenant context, tenant-scoped product CRUD, atomic sale creation with split payments, an append-only stock-movement ledger, a responsive dashboard, Docker PostgreSQL/Redis, and CI checks. Feature coverage must be verified against tests before production use.
+The current working foundation provides registration/login, authenticated tenant context, tenant-scoped product CRUD, atomic checkout with payment rows, stock availability checks and an append-only stock ledger, customer records, inventory adjustments, sales history, dashboard metrics, and a responsive API-connected dashboard. Purchasing, returns, accounting, subscriptions and other SaaS modules remain unfinished. Feature coverage must be verified against tests before production use.
 
 Important work still required includes stronger and tested tenant isolation (including RLS or a documented alternative), complete role/location authorization, purchasing and returns, accounting, subscription billing and signed webhooks, robust backup/restore drills, payment reconciliation, resilient offline sync, operational monitoring, and full security/concurrency tests.
 
