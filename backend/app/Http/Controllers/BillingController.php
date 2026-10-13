@@ -349,6 +349,7 @@ class BillingController
         if (!is_array($verified)
             || !in_array($verified['status'] ?? null, ['VALID', 'VALIDATED'], true)
             || !hash_equals((string) $transaction->transaction_id, (string) ($verified['tran_id'] ?? ''))
+            || (string) ($verified['store_id'] ?? '') !== $storeId
             || strtoupper((string) ($verified['currency'] ?? '')) !== 'BDT'
             || (int) ($verified['risk_level'] ?? 1) !== 0
             || (int) round(((float) ($verified['amount'] ?? 0)) * 100) !== (int) round(((float) $transaction->amount) * 100)) {
@@ -362,7 +363,11 @@ class BillingController
             if (!$locked || $locked->status === 'paid') {
                 return;
             }
-            $endsAt = now()->addMonth();
+            $tenant = DB::table('tenants')->where('id', $locked->tenant_id)->lockForUpdate()->first();
+            $baseDate = $tenant && $tenant->subscription_ends_at && \\Illuminate\\Support\\Carbon::parse($tenant->subscription_ends_at)->isFuture()
+                ? \\Illuminate\\Support\\Carbon::parse($tenant->subscription_ends_at)
+                : now();
+            $endsAt = $baseDate->copy()->addMonth();
             DB::table('billing_transactions')->where('id', $locked->id)->update([
                 'status' => 'paid',
                 'paid_at' => now(),
