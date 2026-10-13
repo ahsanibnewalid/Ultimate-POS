@@ -6,9 +6,9 @@ Laravel 12 / PHP 8.2+ API foundation and Next.js operator dashboard for a multi-
 
 ## Current scope
 
-The current working foundation provides registration/login, authenticated tenant context, tenant-scoped product CRUD, atomic checkout with payment rows, stock availability checks and an append-only stock ledger, customer records, inventory adjustments, sales history, dashboard metrics, and a responsive API-connected dashboard. Purchasing, returns, accounting, subscriptions and other SaaS modules remain unfinished. Feature coverage must be verified against tests before production use.
+The current working foundation provides registration/login, authenticated tenant context, tenant-scoped product CRUD, atomic checkout with payment rows, stock availability checks and an append-only stock ledger, customer records, inventory adjustments, sales history, dashboard metrics, and a responsive API-connected dashboard. A first SaaS subscription-billing flow is now included for Stripe Checkout subscriptions and SSLCommerz hosted one-month payments, with server-side amount checks, Stripe signature verification, SSLCommerz validation API checks, and an administrator billing screen. Purchasing, returns, full accounting, refunds, and automated SSLCommerz renewals remain unfinished. Feature coverage must be verified against tests before production use.
 
-Important work still required includes stronger and tested tenant isolation (including RLS or a documented alternative), complete role/location authorization, purchasing and returns, accounting, subscription billing and signed webhooks, robust backup/restore drills, payment reconciliation, resilient offline sync, operational monitoring, and full security/concurrency tests.
+Important work still required includes stronger and tested tenant isolation (including RLS or a documented alternative), complete role/location authorization, purchasing and returns, accounting, payment reconciliation/refunds, robust backup/restore drills, resilient offline sync, operational monitoring, and full security/concurrency tests. The payment code still requires sandbox integration tests and a security review before live charges.
 
 ## Run locally
 
