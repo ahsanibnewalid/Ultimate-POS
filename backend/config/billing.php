@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'frontend_url' => rtrim((string) env('FRONTEND_URL', env('APP_URL', 'http://localhost')), '/'),
+    'frontend_url' => rtrim((string) env('BILLING_FRONTEND_URL', strtok((string) env('FRONTEND_URL', env('APP_URL', 'http://localhost')), ',')), '/'),
     'currency' => [
         'stripe' => strtolower((string) env('STRIPE_CURRENCY', 'usd')),
         'sslcommerz' => 'BDT',
