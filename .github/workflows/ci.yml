@@ -17,9 +17,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
+      - run: npm install
       - run: npx tsc --noEmit
       - run: npm run build
       - run: test -f out/index.html
@@ -38,3 +36,37 @@ jobs:
         run: find app routes config database tests -name '*.php' -print0 | xargs -0 -n1 php -l
       - working-directory: backend
         run: vendor/bin/phpunit
+
+  cpanel-package:
+    needs: [frontend, backend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_mysql, pdo_pgsql, mbstring, dom, curl, sqlite3, pdo_sqlite
+          coverage: none
+      - working-directory: frontend
+        run: |
+          npm install
+          npm run build
+          test -f out/index.html
+      - name: Assemble uploadable cPanel package
+        run: |
+          mkdir -p cpanel-package/public_html cpanel-package/ultimate-pos-backend
+          cp -a frontend/out/. cpanel-package/public_html/
+          cp -a backend/. cpanel-package/ultimate-pos-backend/
+          cd cpanel-package/ultimate-pos-backend
+          composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+          cd ../..
+          zip -qr Ultimate-POS-cPanel.zip cpanel-package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Ultimate-POS-cPanel
+          path: Ultimate-POS-cPanel.zip
+          if-no-files-found: error
+          retention-days: 14
