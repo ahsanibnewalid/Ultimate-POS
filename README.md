@@ -12,7 +12,7 @@ Important work still required includes stronger and tested tenant isolation (inc
 
 ## Run locally
 
-Requirements: PHP 8.3+, Composer, Node 22+, Docker.
+Requirements: PHP 8.2+, Composer, Node 22+, Docker.
 
 1. `docker compose up -d`
 2. `cd backend && composer install && cp .env.example .env && php artisan key:generate && php artisan migrate && php artisan serve`
