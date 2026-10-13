@@ -116,12 +116,23 @@ Edit `public_html/config.js` and set `apiUrl` to your HTTPS API endpoint, for ex
 
 - Main dashboard: `https://example.com`
 - API: `https://api.example.com`
-- Laravel `.env`: `FRONTEND_URL=https://example.com,https://www.example.com` (only list origins you actually use).
+- Laravel `.env`: `FRONTEND_URL=https://example.com,https://www.example.com (only list origins you actually use) and BILLING_FRONTEND_URL=https://example.com (one canonical frontend URL).
 - Frontend build variable: `NEXT_PUBLIC_API_URL=https://api.example.com/api`.
 
 Use HTTPS on both domains. Never set `APP_DEBUG=true` on a public production site. Never upload a real `.env` file to the frontend document root or commit production secrets to Git.
 
-## 6. Shared-hosting limitations
+## 6. Configure subscription payments
+
+The API supports server-created Stripe Checkout subscriptions and SSLCommerz hosted checkout for SaaS plan billing. Prices are configured server-side in backend/config/billing.php; never accept a price or currency from the browser.
+
+1. Copy the payment variables from deployment/cpanel/backend.env.example into the private server .env. Keep all provider secrets outside the public document root and out of Git.
+2. For **SSLCommerz**, first use a sandbox merchant account and set SSLCOMMERZ_SANDBOX=true. Configure the merchant IPN listener as https://api.example.com/api/billing/sslcommerz/ipn. After sandbox tests pass and your merchant account is approved, enter live credentials and set SSLCOMMERZ_SANDBOX=false.
+3. For **Stripe**, set STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET, then configure a webhook at https://api.example.com/api/billing/stripe/webhook for checkout.session.completed, checkout.session.async_payment_succeeded, invoice.paid, invoice.payment_failed, and customer.subscription.deleted. The application validates the signed webhook and compares the session amount/currency with the server-created transaction before activation.
+4. Test success, cancellation, duplicate IPN/webhook delivery, amount mismatch, wrong signature, and provider downtime in sandbox/staging. Do not enable live credentials until those checks pass.
+
+**Important for Bangladesh:** Stripe currently does not list Bangladesh as a supported merchant-account country. Only enable Stripe for a business that has a legitimately eligible Stripe account; do not use false location or banking information. SSLCommerz is the expected gateway for a Bangladesh-based merchant. SSLCommerz plan checkout is a one-month payment and requires manual renewal; it is not an automatic recurring charge. Browser return URLs never activate a subscription—the server validates SSLCommerz transactions through its validation API first.
+
+## 7. Shared-hosting limitations
 
 - Queues are configured to run synchronously for the starter deployment. Long-running jobs and high-volume workloads need a supported queue worker or a different host.
 - File cache and local file storage are suitable only within the host's storage limits; configure external object storage and off-site backups before production.
@@ -129,12 +140,14 @@ Use HTTPS on both domains. Never set `APP_DEBUG=true` on a public production sit
 - WebSockets, Redis, server-side Next.js, and always-on workers are not assumed to be available.
 - Shared hosting is best for a small pilot. For a multi-tenant SaaS with many shops, busy checkout traffic, real-time features, or strict uptime requirements, use a VPS/managed application host.
 
-## 7. Pre-launch checklist
+## 8. Pre-launch checklist
 
 - [ ] PHP version/extensions and HTTPS verified.
 - [ ] MySQL migrations and tests pass on a disposable staging database.
 - [ ] Tenant isolation and role permissions tested with two independent tenants.
-- [ ] Registration, login, logout, product CRUD, sale creation, stock ledger, and payment handling tested end-to-end.
+- [ ] Registration, login, logout, product CRUD, sale creation, stock ledger, and subscription billing tested end-to-end in sandbox.
+- [ ] Stripe webhook signing secret and SSLCommerz merchant secrets are private; payment notifications are validated and duplicate-safe.
+- [ ] Subscription expiry, renewal, cancellation, refunds, and failed-payment policy have been reviewed before charging real users.
 - [ ] Production `.env` is private, `APP_DEBUG=false`, and `APP_KEY` is unique.
 - [ ] Backups are stored off-server and a restore has been rehearsed.
 - [ ] No real customer/payment data until security and financial correctness have been reviewed.
