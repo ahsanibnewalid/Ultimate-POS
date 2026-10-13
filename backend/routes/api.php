@@ -1,6 +1,8 @@
 <?php
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\PlatformPaymentSettingsController;
+use App\Http\Controllers\PosHardwareSettingsController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
@@ -18,6 +20,10 @@ Route::middleware(['auth:sanctum','tenant.context'])->group(function(){
  Route::post('/logout',[AuthController::class,'logout']);
  Route::get('/me',[AuthController::class,'me']);
  Route::get('/billing/status',[BillingController::class,'status']);
+ Route::get('/platform/payment-settings',[PlatformPaymentSettingsController::class,'show'])->middleware('throttle:30,1');
+ Route::put('/platform/payment-settings',[PlatformPaymentSettingsController::class,'update'])->middleware('throttle:10,1');
+ Route::get('/pos/hardware-settings',[PosHardwareSettingsController::class,'show']);
+ Route::put('/pos/hardware-settings',[PosHardwareSettingsController::class,'update'])->middleware('throttle:10,1');
  Route::post('/billing/checkout',[BillingController::class,'checkout'])->middleware('throttle:10,1');
  Route::get('/billing/transactions',[BillingController::class,'transactions']);
  Route::get('/dashboard',DashboardController::class);

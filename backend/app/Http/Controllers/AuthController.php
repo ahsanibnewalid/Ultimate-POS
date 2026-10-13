@@ -30,5 +30,5 @@ class AuthController {
         return response()->json(['user'=>$user,'tenant'=>$user->tenant,'token'=>$user->createToken('pos-web', ['*'], now()->addDays(30))->plainTextToken]);
     }
     public function logout(Request $request) { $request->user()->currentAccessToken()?->delete(); return response()->json(['message'=>'Logged out.']); }
-    public function me(Request $request) { return response()->json(['user'=>$request->user(),'tenant'=>$request->user()->tenant]); }
+    public function me(Request $request) { return response()->json(['user'=>$request->user(),'tenant'=>$request->user()->tenant,'is_platform_admin'=>app(\App\Support\PlatformPaymentSettings::class)->isPlatformAdmin($request->user())]); }
 }
