@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
@@ -13,6 +14,7 @@ Route::middleware(['auth:sanctum','tenant.context'])->group(function(){
  Route::post('/logout',[AuthController::class,'logout']);
  Route::get('/me',[AuthController::class,'me']);
  Route::get('/dashboard',DashboardController::class);
+ Route::get('/audit-logs',[AuditLogController::class,'index']);
  Route::get('/products',[ProductController::class,'index']);
  Route::post('/products',[ProductController::class,'store']);
  Route::patch('/products/{product}',[ProductController::class,'update'])->whereNumber('product');
