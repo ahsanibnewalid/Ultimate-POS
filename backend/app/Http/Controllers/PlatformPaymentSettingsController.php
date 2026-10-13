@@ -38,8 +38,8 @@ class PlatformPaymentSettingsController
     {
         $this->authorizePlatformAdmin($request, $settings);
         $data = $request->validate([
-            'stripe_secret' => ['nullable', 'string', 'max:500'],
-            'stripe_webhook_secret' => ['nullable', 'string', 'max:500'],
+            'stripe_secret' => ['nullable', 'string', 'max:500', 'regex:/^sk_(test|live)_[A-Za-z0-9]+$/'],
+            'stripe_webhook_secret' => ['nullable', 'string', 'max:500', 'regex:/^whsec_[A-Za-z0-9]+$/'],
             'sslcommerz_store_id' => ['nullable', 'string', 'max:100'],
             'sslcommerz_store_password' => ['nullable', 'string', 'max:500'],
             'stripe_live_mode' => ['required', 'boolean'],
