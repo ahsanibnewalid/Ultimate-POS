@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 use App\Models\Product;
+use App\Support\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,7 @@ class SaleController {
     if($line['product']->track_stock)DB::table('inventory_ledger')->insert(['tenant_id'=>$tenantId,'product_id'=>$line['product']->id,'location_name'=>$data['location_name'],'movement_type'=>'sale','quantity_delta'=>-$line['quantity'],'reference_type'=>'sale','reference_id'=>$saleId,'reason'=>'POS sale '.$receipt,'created_by'=>$request->user()->id,'created_at'=>now(),'updated_at'=>now()]);
    }
    foreach($data['payments'] as $payment)DB::table('payments')->insert(['tenant_id'=>$tenantId,'sale_id'=>$saleId,'method'=>$payment['method'],'amount'=>number_format(((int)round(((float)$payment['amount'])*100))/100,2,'.',''),'created_at'=>now(),'updated_at'=>now()]);
+   AuditLogger::record($request,'sale.completed','sale',(int)$saleId,['receipt_number'=>$receipt,'total'=>$total,'item_count'=>count($lines),'location'=>$data['location_name']]);
    return ['id'=>$saleId,'receipt_number'=>$receipt,'total'=>$total,'replayed'=>false];
   },3);}catch(QueryException $exception){
    $existing=DB::table('sales')->where('tenant_id',$tenantId)->where('client_sale_id',$data['client_sale_id'])->first();
