@@ -10,8 +10,10 @@ class PlatformPaymentSettings
 {
     public function isPlatformAdmin($user): bool
     {
-        if (!$user || !isset($user->email)) return false;
-        return in_array(strtolower((string) $user->email), config('platform.admin_emails', []), true);
+        if (!$user || !isset($user->id)) return false;
+        if (in_array((int) $user->id, config('platform.admin_user_ids', []), true)) return true;
+        return isset($user->email_verified_at) && $user->email_verified_at !== null
+            && in_array(strtolower((string) $user->email), config('platform.admin_emails', []), true);
     }
 
     public function get(string $key, mixed $fallback = null): mixed
