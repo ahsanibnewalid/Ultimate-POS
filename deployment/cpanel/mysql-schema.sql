@@ -11,6 +11,9 @@ CREATE TABLE tenants (
   currency CHAR(3) NOT NULL DEFAULT 'BDT',
   timezone VARCHAR(80) NOT NULL DEFAULT 'Asia/Dhaka',
   plan VARCHAR(255) NOT NULL DEFAULT 'free',
+  billing_status VARCHAR(24) NOT NULL DEFAULT 'inactive',
+  subscription_ends_at TIMESTAMP NULL,
+  stripe_subscription_id VARCHAR(120) NULL,
   created_at TIMESTAMP NULL,
   updated_at TIMESTAMP NULL,
   PRIMARY KEY (id),
@@ -175,6 +178,30 @@ CREATE TABLE audit_logs (
   CONSTRAINT audit_logs_actor_fk FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE billing_transactions (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  transaction_id CHAR(36) NOT NULL,
+  provider VARCHAR(24) NOT NULL,
+  plan VARCHAR(40) NOT NULL,
+  amount DECIMAL(12,2) NOT NULL,
+  currency CHAR(3) NOT NULL,
+  status VARCHAR(24) NOT NULL DEFAULT 'pending',
+  provider_reference VARCHAR(160) NULL,
+  provider_subscription_id VARCHAR(160) NULL,
+  provider_metadata TEXT NULL,
+  paid_at TIMESTAMP NULL,
+  created_at TIMESTAMP NULL,
+  updated_at TIMESTAMP NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY billing_transaction_id_unique (transaction_id),
+  UNIQUE KEY billing_provider_reference_unique (provider_reference),
+  KEY billing_provider_subscription_index (provider_subscription_id),
+  KEY billing_tenant_created_index (tenant_id, created_at),
+  KEY billing_tenant_status_index (tenant_id, status),
+  CONSTRAINT billing_transactions_tenant_fk FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE migrations (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   migration VARCHAR(255) NOT NULL,
@@ -186,6 +213,7 @@ INSERT INTO migrations (migration, batch) VALUES
 ('2026_10_13_000001_create_pos_core_tables', 1),
 ('2026_10_13_000002_create_customers_table', 1),
 ('2026_10_13_000003_add_reason_to_inventory_ledger', 1),
-('2026_10_13_000004_create_audit_logs_table', 1);
+('2026_10_13_000004_create_audit_logs_table', 1),
+('2026_10_13_000005_create_billing_transactions_table', 1);
 
 SET FOREIGN_KEY_CHECKS=1;
