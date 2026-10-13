@@ -38,10 +38,11 @@ class BillingController
         $data = $request->validate([
             'provider' => ['required', 'in:stripe,sslcommerz'],
             'plan' => ['required', 'string', 'in:' . implode(',', array_keys(config('billing.plans')))],
-            'phone' => ['required_if:provider,sslcommerz', 'nullable', 'string', 'regex:/^\\+?[0-9 ()-]{7,25}$/'],
+            'phone' => ['required_if:provider,sslcommerz', 'nullable', 'string', 'regex:/^\\\\+?[0-9 ()-]{7,25}$/'],
             'address' => ['required_if:provider,sslcommerz', 'nullable', 'string', 'max:200'],
             'city' => ['required_if:provider,sslcommerz', 'nullable', 'string', 'max:60'],
         ]);
+
         if ($data['provider'] === 'stripe' && !config('billing.stripe.secret')) {
             return response()->json(['message' => 'Stripe is not configured. Add the server-side Stripe secret key first.'], 503);
         }
@@ -49,19 +50,21 @@ class BillingController
             return response()->json(['message' => 'SSLCommerz is not configured. Add merchant credentials first.'], 503);
         }
         $tenant = $request->user()->tenant;
-        if ($data['provider'] === 'stripe' && $tenant->stripe_subscription_id) {
-            return response()->json(['message' => 'This workspace already has an active Stripe subscription. Cancel or manage that subscription before starting another one.'], 409);
+        $frontend = (string) config('billing.frontend_url');
+        if (config('app.env') === 'production'
+            && (!str_starts_with((string) config('app.url'), 'https://') || !str_starts_with($frontend, 'https://'))) {
+            return response()->json(['message' => 'Production payment checkout requires HTTPS for both the API and frontend URLs.'], 503);
         }
+
         $plan = config('billing.plans.' . $data['plan']);
         $provider = $data['provider'];
-        $transactionId = (string) Str::uuid();
         $currency = $provider === 'stripe'
             ? config('billing.currency.stripe')
             : config('billing.currency.sslcommerz');
         $amount = $provider === 'stripe'
             ? number_format(((int) $plan['stripe_monthly_minor']) / 100, 2, '.', '')
             : number_format((float) $plan['sslcommerz_monthly_bdt'], 2, '.', '');
-
+        $transactionId = (string) Str::uuid();
         $transactionRow = [
             'tenant_id' => $tenant->id,
             'transaction_id' => $transactionId,
@@ -73,7 +76,40 @@ class BillingController
             'created_at' => now(),
             'updated_at' => now(),
         ];
-        DB::table('billing_transactions')->insert($transactionRow);
+
+        // Lock the tenant row so parallel requests cannot create two live Stripe sessions.
+        $state = DB::transaction(function () use ($tenant, $provider, $data, $transactionRow) {
+            $lockedTenant = DB::table('tenants')->where('id', $tenant->id)->lockForUpdate()->first();
+            if (!$lockedTenant) {
+                return ['error' => 404, 'message' => 'Workspace not found.'];
+            }
+            if ($provider === 'stripe' && $lockedTenant->stripe_subscription_id) {
+                return ['error' => 409, 'message' => 'This workspace already has an active Stripe subscription. Cancel or manage that subscription before starting another one.'];
+            }
+            if ($provider === 'stripe') {
+                $pending = DB::table('billing_transactions')
+                    ->where('tenant_id', $tenant->id)->where('provider', 'stripe')->where('status', 'pending')
+                    ->where('created_at', '>=', now()->subHours(25))->orderByDesc('id')->first();
+                if ($pending) {
+                    return ['pending' => $pending];
+                }
+            }
+            DB::table('billing_transactions')->insert($transactionRow);
+            return ['created' => true];
+        }, 3);
+
+        if (isset($state['error'])) {
+            return response()->json(['message' => $state['message']], $state['error']);
+        }
+        if (isset($state['pending'])) {
+            $pending = $state['pending'];
+            $metadata = json_decode((string) $pending->provider_metadata, true);
+            if ($pending->plan === $data['plan'] && is_array($metadata) && is_string($metadata['checkout_url'] ?? null)
+                && is_string($pending->provider_reference) && $pending->provider_reference !== '') {
+                return response()->json(['provider' => 'stripe', 'transaction_id' => $pending->transaction_id, 'checkout_url' => $metadata['checkout_url'], 'reused' => true]);
+            }
+            return response()->json(['message' => 'A Stripe checkout is already pending for this workspace. Complete or wait for it to expire before starting another.'], 409);
+        }
 
         try {
             return $provider === 'stripe'
@@ -117,13 +153,13 @@ class BillingController
             ]
         );
 
-        if (!$response->successful() || !is_string($response->json('url')) || !is_string($response->json('id'))) {
+        if (!$response->successful() || !is_string($response->json('url')) || parse_url((string) $response->json('url'), PHP_URL_HOST) !== 'checkout.stripe.com' || !is_string($response->json('id'))) {
             throw new \RuntimeException('Stripe Checkout session creation failed: HTTP ' . $response->status());
         }
 
         DB::table('billing_transactions')->where('transaction_id', $transactionId)->update([
             'provider_reference' => $response->json('id'),
-            'provider_metadata' => json_encode(['checkout_url_created' => true], JSON_THROW_ON_ERROR),
+            'provider_metadata' => json_encode(['checkout_url' => $response->json('url')], JSON_THROW_ON_ERROR),
             'updated_at' => now(),
         ]);
 
@@ -178,7 +214,7 @@ class BillingController
 
         $checkoutUrl = $response->json('GatewayPageURL');
         $sessionKey = $response->json('sessionkey');
-        if (!$response->successful() || !is_string($checkoutUrl) || !str_starts_with($checkoutUrl, 'https://') || !is_string($sessionKey)) {
+        if (!$response->successful() || !is_string($checkoutUrl) || !str_starts_with($checkoutUrl, 'https://') || parse_url($checkoutUrl, PHP_URL_HOST) !== parse_url($baseUrl, PHP_URL_HOST) || !is_string($sessionKey)) {
             throw new \RuntimeException('SSLCommerz session creation failed: HTTP ' . $response->status());
         }
 
