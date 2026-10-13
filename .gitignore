@@ -1,0 +1,12 @@
+/.env
+/.env.*
+!/backend/.env.example
+!/frontend/.env.example
+/vendor/
+/node_modules/
+/.next/
+/dist/
+/build/
+/coverage/
+*.log
+.DS_Store
