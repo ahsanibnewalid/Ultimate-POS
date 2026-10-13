@@ -81,6 +81,16 @@ jobs:
           DB_USERNAME: pos
           DB_PASSWORD: pos-test-password
         run: vendor/bin/phpunit
+      - name: Validate the phpMyAdmin bootstrap SQL
+        env:
+          DB_PASSWORD: pos-test-password
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y default-mysql-client
+          mysql -h 127.0.0.1 -uroot -proot-test-password -e "CREATE DATABASE ultimate_pos_bootstrap"
+          mysql -h 127.0.0.1 -uroot -proot-test-password -e "GRANT ALL PRIVILEGES ON ultimate_pos_bootstrap.* TO 'pos'@'%'"
+          mysql -h 127.0.0.1 -uroot -proot-test-password ultimate_pos_bootstrap < deployment/cpanel/mysql-schema.sql
+          DB_CONNECTION=mysql DB_HOST=127.0.0.1 DB_PORT=3306 DB_DATABASE=ultimate_pos_bootstrap DB_USERNAME=pos DB_PASSWORD="$DB_PASSWORD" php backend/artisan migrate:status --no-ansi
 
   cpanel-package:
     needs: [frontend, backend, mysql-tests]
