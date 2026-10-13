@@ -17,7 +17,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
       - run: npx tsc --noEmit
       - run: npm run build
       - run: test -f out/index.html
@@ -28,9 +30,11 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: pdo_pgsql, mbstring, dom, curl, sqlite3, pdo_sqlite
+          extensions: pdo_pgsql, pdo_mysql, mbstring, dom, curl, sqlite3, pdo_sqlite
           coverage: none
       - working-directory: backend
         run: composer install --no-interaction --prefer-dist
+      - working-directory: backend
+        run: find app routes config database tests -name '*.php' -print0 | xargs -0 -n1 php -l
       - working-directory: backend
         run: vendor/bin/phpunit
