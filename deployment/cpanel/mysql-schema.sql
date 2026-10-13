@@ -18,7 +18,7 @@ CREATE TABLE tenants (
   updated_at TIMESTAMP NULL,
   PRIMARY KEY (id),
   UNIQUE KEY tenants_slug_unique (slug),
-  UNIQUE KEY tenants_stripe_subscription_unique (stripe_subscription_id)
+  UNIQUE KEY tenants_stripe_subscription_id_unique (stripe_subscription_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE users (
